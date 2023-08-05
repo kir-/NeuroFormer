@@ -66,7 +66,7 @@ class GPT2Module(pl.LightningModule):
         # Average the losses
         average_loss = total_loss / total_chunks
         self.log('train_loss', average_loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=len(batch))
-        return average_loss
+        return torch.tensor(average_loss, device=self.device)
 
     def validation_step(self, batch, batch_idx):
         # Handle the case where you have a single text sequence
