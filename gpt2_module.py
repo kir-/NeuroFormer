@@ -36,60 +36,32 @@ class GPT2Module(pl.LightningModule):
         return loss
     
     def training_step(self, batch, batch_idx):
-        max_length = 1024  # GPT-2's max token length
-        total_loss = 0.0
-        total_chunks = 0
+        # Now, each batch item is already a tokenized chunk.
+        # Convert the batch (a list of token chunks) into a tensor.
+        input_ids = torch.stack(batch).to(self.device)  # Shape: [batch_size, max_length]
 
-        for text in batch:
-            # Convert text to input IDs
-            input_ids = self.tokenizer.encode(text, return_tensors='pt').squeeze(0)
-            input_ids = input_ids.to(self.device)
-            # Split the input_ids into chunks of max_length
-            num_chunks = len(input_ids) // max_length + int(len(input_ids) % max_length != 0)
+        # Forward pass for this chunk
+        logits = self(input_ids)
 
-            for chunk_idx in range(num_chunks):
-                start_idx = chunk_idx * max_length
-                end_idx = start_idx + max_length
+        # Compute the loss for this batch
+        loss = self.compute_loss(logits, input_ids)
 
-                chunk = input_ids[start_idx:end_idx].unsqueeze(0)  # unsqueeze to add the batch dimension back
-
-                # Forward pass for this chunk
-                logits = self(chunk)
-
-                # Compute the loss for this chunk
-                # Note: You need to implement the compute_loss method
-                loss = self.compute_loss(logits, chunk)
-                
-                total_loss += loss
-                total_chunks += 1
-
-        # Average the losses
-        average_loss = total_loss / total_chunks
-        self.log('train_loss', average_loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=len(batch))
-        return average_loss
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        # Handle the case where you have a single text sequence
-        src = batch
-
-        # Preprocess the text sequence and convert it into the appropriate input format
-        input_ids = self.tokenizer.encode(src, return_tensors='pt')
-        input_ids = input_ids.to(self.device)
+        # Each batch item is already a tokenized chunk.
+        input_ids = torch.stack(batch).to(self.device)  # Shape: [batch_size, max_length]
 
         # Forward pass to get the logits from the GPT-2 model
-        logits = self.model(src=input_ids)
+        logits = self(input_ids)
 
-        # Slice off the final prediction from the logits so it matches the targets' shape
-        logits = logits[:, :-1, :]
-
-        # Compute the targets by shifting the input_ids by one position
-        targets = input_ids[:, 1:]
-
-        # Compute the language modeling loss (cross-entropy loss)
-        loss = F.cross_entropy(logits.view(-1, self.vocab_size), targets.view(-1))
+        # Compute the loss for this batch
+        loss = self.compute_loss(logits, input_ids)
 
         # Return the validation loss or any metrics you want to track
-        return loss
+        return {'val_loss': loss}
+
 
 
     def configure_optimizers(self):
