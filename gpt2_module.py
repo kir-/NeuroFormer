@@ -108,10 +108,10 @@ class GPT2Module(pl.LightningModule):
 
     def val_dataloader(self):
         # Implement validation DataLoader
-        val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size)
+        val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=12)
         return val_loader
 
     def test_dataloader(self):
         # Implement testing DataLoader
-        test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size)
+        test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=12)
         return test_loader
