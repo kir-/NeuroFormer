@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from ncps.torch import LTC
 from ncps.wirings import AutoNCP
+from transformers import GPT2Tokenizer
 
 class OscillatoryAttention(nn.Module):
     def __init__(self, d_model=768, nhead=12, dropout=0.1):
@@ -82,41 +83,35 @@ class GPT2Encoder(nn.Module):
 import torch.nn.functional as F
 
 class GPT2Model(nn.Module):
-    def __init__(self, vocab_size, d_model=768, nhead=12, num_encoder_layers=12, dim_feedforward=3072, max_seq_length=1024, num_classes=10):
+    def __init__(self, vocab_size=50257, d_model=768, num_layers=12, nhead=12, dim_feedforward=3072, dropout=0.1, max_seq_length=1024):
         super(GPT2Model, self).__init__()
+
+        # Token embeddings
         self.embedding = nn.Embedding(vocab_size, d_model)
-        self.encoder = GPT2Encoder(num_encoder_layers, d_model, nhead, dim_feedforward, dropout=0.1)
-        self.classifier = nn.Linear(d_model, num_classes)
+        
+        # Positional embeddings (we're going with learned embeddings here, similar to original GPT-2)
+        self.positional_embedding = nn.Embedding(max_seq_length, d_model)
+
+        # The main GPT-2 body (stacked layers of transformers)
+        self.encoder = GPT2Encoder(num_layers, d_model, nhead, dim_feedforward, dropout)
+
+        # To produce logits over the vocabulary
+        self.classifier = nn.Linear(d_model, vocab_size)
 
     def forward(self, src):
-        START_TOKEN_INDEX = 0  # Replace with the actual index of your start token (e.g., <SOS>)
-        max_seq_length = 512  # You can adjust this based on your preference and requirements
-        temperature = 0.7  # You can experiment with different temperature values (e.g., 0.7, 1.0, 1.5, etc.)
-        src_embedding = self.embedding(src)
-        src_mask = None
-        src_key_padding_mask = None
-        encoder_output = self.encoder(src_embedding, src_mask=src_mask, src_key_padding_mask=src_key_padding_mask)
+        # Input embedding
+        input_emb = self.embedding(src)
 
-        # Initialize the output_ids with the start token
-        start_token = torch.tensor([START_TOKEN_INDEX], dtype=torch.long, device=src.device)
-        output_ids = start_token.unsqueeze(0).expand(src.size(0), -1)  # Shape: (batch_size, seq_len)
+        # Add positional embedding
+        positions = torch.arange(len(src[0]), device=src.device).unsqueeze(0)
+        position_emb = self.positional_embedding(positions)
+        embeddings = input_emb + position_emb
 
-        # Generate tokens autoregressively
-        for step in range(1, max_seq_length):
-            input_tokens = output_ids[:, :step]
-            input_embedding = self.embedding(input_tokens)
-            decoder_output = self.encoder(input_embedding, src_mask=src_mask, src_key_padding_mask=src_key_padding_mask)
+        # Passing through the encoder
+        transformer_output = self.encoder(embeddings)
 
-            # Get the logits for the next token from the decoder_output
-            next_token_logits = self.classifier(decoder_output)
+        # Producing logits over the vocabulary
+        logits = self.classifier(transformer_output)
+        
+        return logits
 
-            # Sample the next token (you can use temperature to control the randomness)
-            next_token_probs = F.softmax(next_token_logits[:, -1] / temperature, dim=-1)
-            next_token = torch.multinomial(next_token_probs, num_samples=1).squeeze(1)
-
-            # Append the generated token to the output_ids
-            output_ids = torch.cat((output_ids, next_token.unsqueeze(1)), dim=-1)
-
-        return output_ids
-
-# Replace START_TOKEN_INDEX with the index of your start token (e.g., <SOS>).

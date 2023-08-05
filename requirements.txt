@@ -1,6 +1,6 @@
 ncps==0.0.7
 nltk==3.6
-numpy==1.25.1
+numpy==1.23
 openai==0.13.0
 pytest==7.4.0
 pytorch_lightning==2.0.6
