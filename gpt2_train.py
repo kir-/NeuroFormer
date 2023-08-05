@@ -20,10 +20,10 @@ def main():
         save_last=True,  # Optional: Set to True if you want to save a "last.ckpt" file in addition to the epoch checkpoints
     )
     # Initialize the GPT-2 model
-    model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size,callbacks=[checkpoint_callback])
+    model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size)
 
     # Initialize the PyTorch Lightning Trainer
-    trainer = pl.Trainer(log_every_n_steps=1,max_epochs=max_epochs)
+    trainer = pl.Trainer(log_every_n_steps=1,max_epochs=max_epochs,callbacks=[checkpoint_callback])
     trainer.fit(model)
     checkpoint_path = "./model.ckpt"
     trainer.save_checkpoint(checkpoint_path)
