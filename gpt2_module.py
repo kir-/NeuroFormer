@@ -15,7 +15,6 @@ class GPT2Module(pl.LightningModule):
         super(GPT2Module, self).__init__()
         self.model = GPT2Model()
         self.model.to('cuda:0')
-        self.device = 'cuda:0'
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.vocab_size = vocab_size
