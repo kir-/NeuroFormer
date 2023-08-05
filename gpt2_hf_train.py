@@ -16,8 +16,7 @@ def main():
         dirpath='./',
         filename='model-hf-{epoch}',  # Saves a file like model-epoch=0.ckpt, model-epoch=1.ckpt, etc.
         save_top_k=-1,  # This will save a checkpoint at every epoch
-        verbose=True,
-        save_last=True,  # Optional: Set to True if you want to save a "last.ckpt" file in addition to the epoch checkpoints
+        verbose=True
     )
     # Initialize the GPT-2 model
     model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size)
