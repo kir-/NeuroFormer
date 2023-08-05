@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from text_dataset import TextDataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
+from torch.optim.lr_scheduler import OneCycleLR
 
 class GPT2Module(pl.LightningModule):
     def __init__(self, vocab_size=50257, model_name_or_path='gpt2', learning_rate=2e-5, batch_size=8):
@@ -43,7 +44,17 @@ class GPT2Module(pl.LightningModule):
         return {'val_loss': loss}
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
+
+        # Define the scheduler
+        # max_lr can be set to a value higher than your base learning rate, 
+        # pct_start is the fraction of the total training steps that increasing phase occupies
+        scheduler = {
+            'scheduler': OneCycleLR(optimizer, max_lr=3e-4, total_steps=None, epochs=self.trainer.max_epochs, steps_per_epoch=len(self.train_dataloader()), pct_start=0.3, anneal_strategy='cos', div_factor=25.0, final_div_factor=10000.0),
+            'interval': 'step',
+        }
+
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
         self.train_dataset = TextDataset("babylm_data/babylm_10M", ".train")

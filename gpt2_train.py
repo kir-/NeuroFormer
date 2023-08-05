@@ -8,9 +8,9 @@ def main():
     # Define hyperparameters
     model_name_or_path = 'gpt2'
     vocab_size = 50257  # Replace with the actual vocabulary size of your dataset
-    learning_rate = 2e-5
+    learning_rate = 2e-4
     batch_size = 8
-    max_epochs = 5
+    max_epochs = 10
 
     checkpoint_callback = ModelCheckpoint(
         dirpath='./',

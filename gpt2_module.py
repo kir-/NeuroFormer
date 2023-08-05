@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from gpt2_model import GPT2Model
 from text_dataset import TextDataset
 from transformers import GPT2Tokenizer
+from torch.optim.lr_scheduler import OneCycleLR
 
 # Your GPT-2 encoder implementation here
 
@@ -65,7 +66,16 @@ class GPT2Module(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
+        # Define the scheduler
+        # max_lr can be set to a value higher than your base learning rate, 
+        # pct_start is the fraction of the total training steps that increasing phase occupies
+        scheduler = {
+            'scheduler': OneCycleLR(optimizer, max_lr=3e-4, total_steps=None, epochs=self.trainer.max_epochs, steps_per_epoch=len(self.train_dataloader()), pct_start=0.3, anneal_strategy='cos', div_factor=25.0, final_div_factor=10000.0),
+            'interval': 'step',
+        }
+
+        return [optimizer], [scheduler]
 
     def prepare_data(self):
         # Implement dataset preparation if needed
