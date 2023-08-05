@@ -14,6 +14,8 @@ class GPT2Module(pl.LightningModule):
     def __init__(self, vocab_size, model_name_or_path, learning_rate=2e-5, batch_size=8):
         super(GPT2Module, self).__init__()
         self.model = GPT2Model()
+        self.model.to('cuda:0')
+        self.device = 'cuda:0'
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.vocab_size = vocab_size
@@ -42,7 +44,7 @@ class GPT2Module(pl.LightningModule):
         for text in batch:
             # Convert text to input IDs
             input_ids = self.tokenizer.encode(text, return_tensors='pt').squeeze(0)
-
+            input_ids = input_ids.to(self.device)
             # Split the input_ids into chunks of max_length
             num_chunks = len(input_ids) // max_length + int(len(input_ids) % max_length != 0)
 
@@ -73,6 +75,7 @@ class GPT2Module(pl.LightningModule):
 
         # Preprocess the text sequence and convert it into the appropriate input format
         input_ids = self.tokenizer.encode(src, return_tensors='pt')
+        input_ids = input_ids.to(self.device)
 
         # Forward pass to get the logits from the GPT-2 model
         logits = self.model(src=input_ids)
