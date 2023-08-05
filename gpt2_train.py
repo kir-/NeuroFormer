@@ -15,7 +15,7 @@ def main():
     model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size)
 
     # Initialize the PyTorch Lightning Trainer
-    trainer = pl.Trainer(max_epochs=max_epochs)
+    trainer = pl.Trainer(max_epochs=max_epochs, accelerator='gpu')
     trainer.fit(model)
 
 if __name__ == "__main__":
