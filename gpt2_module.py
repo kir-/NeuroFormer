@@ -31,7 +31,7 @@ class GPT2Module(pl.LightningModule):
         targets = input_ids[:, 1:]
 
         # Compute the language modeling loss (cross-entropy loss)
-        loss = F.cross_entropy(logits.view(-1, self.vocab_size), targets.view(-1))
+        loss = F.cross_entropy(logits.reshape(-1, self.vocab_size), targets.reshape(-1))
         
         return loss
     

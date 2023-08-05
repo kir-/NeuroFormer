@@ -2,6 +2,7 @@
 import torch
 import pytorch_lightning as pl
 from gpt2_module import GPT2Module
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 def main():
     # Define hyperparameters
@@ -11,12 +12,21 @@ def main():
     batch_size = 8
     max_epochs = 5
 
+    checkpoint_callback = ModelCheckpoint(
+        dirpath='./',
+        filename='model-{epoch}',  # Saves a file like model-epoch=0.ckpt, model-epoch=1.ckpt, etc.
+        save_top_k=-1,  # This will save a checkpoint at every epoch
+        verbose=True,
+        save_last=True,  # Optional: Set to True if you want to save a "last.ckpt" file in addition to the epoch checkpoints
+    )
     # Initialize the GPT-2 model
-    model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size)
+    model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size,callbacks=[checkpoint_callback])
 
     # Initialize the PyTorch Lightning Trainer
     trainer = pl.Trainer(log_every_n_steps=1,max_epochs=max_epochs)
     trainer.fit(model)
+    checkpoint_path = "./model.ckpt"
+    trainer.save_checkpoint(checkpoint_path)
 
 if __name__ == "__main__":
     main()
