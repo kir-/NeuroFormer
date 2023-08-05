@@ -8,6 +8,8 @@ class TextDataset(Dataset):
         self.data_folder = data_folder
         self.file_extension = file_extension
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer.padding_side = 'left'
         self.max_length = max_length
         self.samples = self.build_samples()
 
