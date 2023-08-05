@@ -103,7 +103,7 @@ class GPT2Module(pl.LightningModule):
 
     def train_dataloader(self):
         # Implement training DataLoader
-        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=12)
         return train_loader
 
     def val_dataloader(self):
