@@ -38,7 +38,7 @@ class GPT2Module(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # Now, each batch item is already a tokenized chunk.
         # Convert the batch (a list of token chunks) into a tensor.
-        input_ids = torch.stack(batch).to(self.device)  # Shape: [batch_size, max_length]
+        input_ids = batch.to(self.device)  # Shape: [batch_size, max_length]
 
         # Forward pass for this chunk
         logits = self(input_ids)
@@ -51,7 +51,7 @@ class GPT2Module(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # Each batch item is already a tokenized chunk.
-        input_ids = torch.stack(batch).to(self.device)  # Shape: [batch_size, max_length]
+        input_ids = batch.to(self.device)  # Shape: [batch_size, max_length]
 
         # Forward pass to get the logits from the GPT-2 model
         logits = self(input_ids)
