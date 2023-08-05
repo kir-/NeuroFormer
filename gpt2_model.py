@@ -112,6 +112,21 @@ class GPT2Model(nn.Module):
 
         # Producing logits over the vocabulary
         logits = self.classifier(transformer_output)
-        
+
         return logits
+    
+    def generate(self, input_ids, max_length=1024, temperature=1.0, pad_token_id=None):
+        self.eval()
+        generated = input_ids
+        with torch.no_grad():
+            for _ in range(max_length - len(input_ids[0])):
+                logits = self(generated)[:, -1, :]
+                probs = F.softmax(logits / temperature, dim=-1)
+                next_token = torch.multinomial(probs, num_samples=1)
+                generated = torch.cat([generated, next_token], dim=-1)
+
+                if pad_token_id is not None and next_token.item() == pad_token_id:
+                    break
+        return generated
+
 
