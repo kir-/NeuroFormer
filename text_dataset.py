@@ -7,7 +7,7 @@ class TextDataset(Dataset):
     def __init__(self, data_folder, file_extension, max_length=1024):
         self.data_folder = data_folder
         self.file_extension = file_extension
-        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-small')
+        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.max_length = max_length
         self.samples = self.build_samples()
 
