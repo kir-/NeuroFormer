@@ -11,7 +11,7 @@ from transformers import GPT2Tokenizer
 # Your GPT-2 encoder implementation here
 
 class GPT2Module(pl.LightningModule):
-    def __init__(self, vocab_size, model_name_or_path, learning_rate=2e-5, batch_size=8):
+    def __init__(self, vocab_size=50257, model_name_or_path='gpt2', learning_rate=2e-5, batch_size=8):
         super(GPT2Module, self).__init__()
         self.model = GPT2Model()
         self.model.to('cuda:0')
