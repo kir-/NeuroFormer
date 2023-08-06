@@ -41,7 +41,15 @@ class GPT2Module(pl.LightningModule):
         input_ids = batch.to(self.device)
         logits = self(input_ids)
         loss = self.compute_loss(logits, input_ids)
+        self.log('val_loss', loss)
         return {'val_loss': loss}
+    
+    def validation_epoch_end(self, outputs):
+        # Compute the average over all batches
+        avg_val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        
+        # Log the average validation loss
+        self.log('avg_val_loss', avg_val_loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
