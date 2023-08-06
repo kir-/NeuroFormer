@@ -51,19 +51,11 @@ class GPT2Module(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        # Each batch item is already a tokenized chunk.
-        input_ids = batch.to(self.device)  # Shape: [batch_size, max_length]
-
-        # Forward pass to get the logits from the GPT-2 model
+        input_ids = batch.to(self.device)
         logits = self(input_ids)
-
-        # Compute the loss for this batch
         loss = self.compute_loss(logits, input_ids)
-
-        # Return the validation loss or any metrics you want to track
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return {'val_loss': loss}
-
-
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)

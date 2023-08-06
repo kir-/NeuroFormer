@@ -3,6 +3,7 @@ import torch
 import pytorch_lightning as pl
 from gpt2_module import GPT2Module
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 
 def main():
     # Define hyperparameters
@@ -20,9 +21,10 @@ def main():
     )
     # Initialize the GPT-2 model
     model = GPT2Module(vocab_size, model_name_or_path, learning_rate, batch_size)
-
+  
+    logger = TensorBoardLogger("logs", name="gpt2_model")
     # Initialize the PyTorch Lightning Trainer
-    trainer = pl.Trainer(log_every_n_steps=1,max_epochs=max_epochs,callbacks=[checkpoint_callback])
+    trainer = pl.Trainer(logger=logger,log_every_n_steps=1,max_epochs=max_epochs,callbacks=[checkpoint_callback])
     trainer.fit(model)
     checkpoint_path = "./model.ckpt"
     trainer.save_checkpoint(checkpoint_path)
