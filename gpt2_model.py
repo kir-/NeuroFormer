@@ -38,6 +38,11 @@ class OscillatoryAttention(nn.Module):
         output = torch.einsum('bts, bsh -> bth', attention_weights, v)
 
         return output
+    
+def generate_square_subsequent_mask(sz):
+    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask
 
 class GPT2EncoderLayer(nn.Module):
     def __init__(self, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1, ltc=False, oscattention=False):
@@ -61,12 +66,12 @@ class GPT2EncoderLayer(nn.Module):
        
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
-        src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
-        src = src + self.dropout1(src2)
         src = self.norm1(src)
+        src2 = self.self_attn(src, src, src, attn_mask=generate_square_subsequent_mask(len(src)), key_padding_mask=src_key_padding_mask)[0]
+        src = src + self.dropout1(src2)
+        src = self.norm2(src)
         src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
         src = src + self.dropout2(src2)
-        src = self.norm2(src)
         return src
 
 class GPT2Encoder(nn.Module):
@@ -121,7 +126,7 @@ class GPT2Model(nn.Module):
         with torch.no_grad():
             for _ in range(max_length - len(input_ids[0])):
                 logits = self(generated)[:, -1, :]
-                probs = F.softmax(logits / temperature, dim=-1)
+                probs = torch.exp(F.log_softmax(logits / temperature, dim=-1))
                 next_token = torch.multinomial(probs, num_samples=1)
                 generated = torch.cat([generated, next_token], dim=-1)
 
