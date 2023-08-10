@@ -52,11 +52,15 @@ class GPT2EncoderLayer(nn.Module):
         else:
             self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
 
-        if (ltc == False):
-            self.layer1 = nn.Linear(d_model, dim_feedforward)
+        num_neurons = 16  # For example, a small number like 16
+
+        if ltc:
+            self.embed_to_ltc = nn.Linear(d_model, num_neurons)
+            wiring = AutoNCP(num_neurons, num_neurons)
+            self.ltc_layer = LTC(num_neurons, wiring, batch_first=True)
+            self.ltc_to_feedforward = nn.Linear(num_neurons, dim_feedforward)
         else:
-            wiring = AutoNCP(16, dim_feedforward)  # 16 units, 1 motor neuron
-            self.layer1 = LTC(d_model, wiring, batch_first=True)
+            self.layer1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
         self.norm1 = nn.LayerNorm(d_model)
@@ -71,7 +75,13 @@ class GPT2EncoderLayer(nn.Module):
         src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
         src = self.norm2(src)
-        src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
+        if hasattr(self, 'ltc_layer'):
+            src = self.embed_to_ltc(src)
+            src = self.ltc_layer(src)
+            src = self.ltc_to_feedforward(src)
+        else:
+            src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
+            src = src + self.dropout2(src2)
         src = src + self.dropout2(src2)
         return src
 
