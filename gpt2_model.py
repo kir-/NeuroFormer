@@ -84,7 +84,7 @@ class GPT2EncoderLayer(nn.Module):
             src = self.ltc_to_feedforward(src)
             src = self.feedforward_to_embedding(src)
             src = (self.dropout(F.relu(src)), 0, 1)
-            print("shape:",src.shape)
+            print("shape:",src)
             src2 = self.linear2(src)
             src = src + self.dropout2(src2)
         else:
