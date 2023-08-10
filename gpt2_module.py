@@ -10,11 +10,18 @@ from transformers import GPT2Tokenizer
 from torch.optim.lr_scheduler import OneCycleLR
 
 # Your GPT-2 encoder implementation here
-
+def custom_weight_init(m):
+        if isinstance(m, (nn.Linear, nn.Embedding)):
+            m.weight.data.normal_(mean=0.0, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                m.bias.data.zero_()
+                
 class GPT2Module(pl.LightningModule):
+    
     def __init__(self, vocab_size=50257, model_name_or_path='gpt2', learning_rate=2e-5, batch_size=8):
         super(GPT2Module, self).__init__()
         self.model = GPT2Model()
+        self.model.apply(custom_weight_init)
         self.model.to('cuda:0')
         self.learning_rate = learning_rate
         self.batch_size = batch_size

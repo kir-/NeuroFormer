@@ -2,42 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ncps.torch import LTC
-from ncps.wirings import AutoNCP
 from transformers import GPT2Tokenizer
-
-class OscillatoryAttention(nn.Module):
-    def __init__(self, d_model=768, nhead=12, dropout=0.1):
-        super(OscillatoryAttention, self).__init__()
-        self.d_model = d_model
-        self.nhead = nhead
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, query, key, value, mask=None, key_padding_mask=None):
-        q = query
-        k = key
-        v = value
-
-        # Calculate sinusoidal weights
-        pos_enc = torch.arange(0, self.d_model, 2, dtype=torch.float32, device=query.device)
-        sin_weights = torch.sin(pos_enc / self.d_model)
-        cos_weights = torch.cos(pos_enc / self.d_model)
-
-        # Apply sinusoidal modification to the attention weights
-        attention_weights = torch.einsum('bth, bsh -> bts', q + sin_weights, k + cos_weights)
-
-        # Apply mask if available
-        if mask is not None:
-            attention_weights = attention_weights.masked_fill(mask.unsqueeze(1), float('-inf'))
-
-        # Apply softmax to compute attention scores
-        attention_weights = F.softmax(attention_weights, dim=-1)
-        attention_weights = self.dropout(attention_weights)
-
-        # Weighted sum using the modified attention scores
-        output = torch.einsum('bts, bsh -> bth', attention_weights, v)
-
-        return output
     
 def generate_square_subsequent_mask(sz):
     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
@@ -45,18 +10,10 @@ def generate_square_subsequent_mask(sz):
     return mask
 
 class GPT2EncoderLayer(nn.Module):
-    def __init__(self, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1, ltc=False, oscattention=False):
+    def __init__(self, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1):
         super(GPT2EncoderLayer, self).__init__()
-        if (oscattention== False):
-            self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        else:
-            self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
-
-        if (ltc == False):
-            self.layer1 = nn.Linear(d_model, dim_feedforward)
-        else:
-            wiring = AutoNCP(16, dim_feedforward)  # 16 units, 1 motor neuron
-            self.layer1 = LTC(d_model, wiring, batch_first=True)
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.layer1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
         self.norm1 = nn.LayerNorm(d_model)
@@ -71,7 +28,7 @@ class GPT2EncoderLayer(nn.Module):
         src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
         src = self.norm2(src)
-        src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
+        src2 = self.linear2(self.dropout(F.gelu(self.layer1(src))))
         src = src + self.dropout2(src2)
         return src
 
