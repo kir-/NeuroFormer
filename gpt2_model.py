@@ -52,19 +52,19 @@ class GPT2EncoderLayer(nn.Module):
         else:
             self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
 
-        num_neurons = 16  # For example, a small number like 16
+        num_neurons = 9  # For example, a small number like 16
 
         if ltc:
             self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
-            wiring1 = AutoNCP(num_neurons, 4)  
+            wiring1 = AutoNCP(num_neurons, 3)  
             self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)  # Modify the input size here too
-            self.ltc_to_feedforward1 = nn.Linear(4, dim_feedforward)
+            self.ltc_to_feedforward1 = nn.Linear(3, dim_feedforward)
             self.feedforward_to_embedding1 = nn.Linear(dim_feedforward, d_model)
 
             self.embed_to_ltc2 = nn.Linear(dim_feedforward, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
-            wiring2 = AutoNCP(num_neurons, 4)  
+            wiring2 = AutoNCP(num_neurons, 3)  
             self.ltc_layer2 = LTC(num_neurons, wiring2, batch_first=True)  # Modify the input size here too
-            self.ltc_to_feedforward2 = nn.Linear(4, d_model)
+            self.ltc_to_feedforward2 = nn.Linear(3, d_model)
             self.feedforward_to_embedding2 = nn.Linear(d_model, dim_feedforward)
         else:
             self.layer1 = nn.Linear(d_model, dim_feedforward)
