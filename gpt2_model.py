@@ -77,7 +77,9 @@ class GPT2EncoderLayer(nn.Module):
         src = self.norm2(src)
         if hasattr(self, 'ltc_layer'):
             src = self.embed_to_ltc(src)
+            print("ltc embed:",src.shape)  # Should print [batch_size, num_neurons-3]
             src = self.ltc_layer(src)
+            print("ltc:",src.shape)  # Should print [batch_size, num_neurons-3]
             src = self.ltc_to_feedforward(src)
         else:
             src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
