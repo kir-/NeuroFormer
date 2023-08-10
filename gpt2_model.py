@@ -59,6 +59,7 @@ class GPT2EncoderLayer(nn.Module):
             wiring = AutoNCP(num_neurons, 4)  
             self.ltc_layer = LTC(num_neurons, wiring, batch_first=True)  # Modify the input size here too
             self.ltc_to_feedforward = nn.Linear(4, dim_feedforward)
+            self.feedforward_to_embedding = nn.Linear(dim_feedforward, d_model)
         else:
             self.layer1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -81,10 +82,11 @@ class GPT2EncoderLayer(nn.Module):
             src, _ = self.ltc_layer(src)
             # print("ltc:",len(src))  # Should print [batch_size, num_neurons-3]
             src = self.ltc_to_feedforward(src)
+            src2 = self.feedforward_to_embedding(self.ltc_to_feedforward(src))
+            src = src + self.dropout2(src2)
         else:
             src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
             src = src + self.dropout2(src2)
-        src = src + self.dropout2(src2)
         return src
 
 class GPT2Encoder(nn.Module):
