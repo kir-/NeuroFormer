@@ -55,39 +55,39 @@ class GPT2EncoderLayer(nn.Module):
         num_neurons = 9  # For example, a small number like 9
 
         if ltc:
+            num_neurons = 9  # For example, a small number like 9
             self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)
-            wiring1 = AutoNCP(num_neurons, 3)
+            wiring1 = AutoNCP(num_neurons, 3)  # Assuming 3 as output size
             self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)
-            self.ltc_to_feedforward1 = nn.Linear(3, dim_feedforward)
-            self.feedforward_to_embedding1 = nn.Linear(dim_feedforward, d_model)
-            self.layer1 = nn.Linear(d_model, dim_feedforward)
+            self.ltc_to_feedforward1 = nn.Linear(3, d_model)
         else:
-            self.layer1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
+            self.feedforward = nn.Sequential(
+                nn.Linear(d_model, dim_feedforward),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(dim_feedforward, d_model)
+            )
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
        
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
         src = self.norm1(src)
-        src_mask = generate_square_subsequent_mask(len(src)).to(src.device)
-        src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
-        src = src + self.dropout1(src2)
+        if src_mask is None:
+            src_mask = generate_square_subsequent_mask(len(src)).to(src.device)
+        attn_output = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
+        src = src + self.dropout1(attn_output)
         src = self.norm2(src)
+        
         if hasattr(self, 'ltc_layer1'):
             src1 = self.embed_to_ltc1(src)
             src1, _ = self.ltc_layer1(src1)
-            src1 = self.ltc_to_feedforward1(src1)
-            src1 = F.relu(src1)
-            src2 = self.feedforward_to_embedding1(src1)
-            src2 = self.linear2(self.dropout(F.relu(src2)))
-            src = src + self.dropout2(src2)
+            src2 = self.ltc_to_feedforward1(src1)
+            src = src + src2
         else:
-            src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
-            src = src + self.dropout2(src2)
+            src = src + self.feedforward(src)
+
         return src
 
 class GPT2Encoder(nn.Module):
