@@ -52,21 +52,41 @@ class GPT2EncoderLayer(nn.Module):
         else:
             self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
 
-        num_neurons = 9  # For example, a small number like 9
+        self.feedforward = nn.Sequential(
+            nn.Linear(d_model, dim_feedforward),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_feedforward, d_model)
+        )
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(dropout)
+       
 
-        if ltc:
-            num_neurons = 9  # For example, a small number like 9
-            self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)
-            wiring1 = AutoNCP(num_neurons, 3)  # Assuming 3 as output size
-            self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)
-            self.ltc_to_feedforward1 = nn.Linear(3, d_model)
+    def forward(self, src, src_mask=None, src_key_padding_mask=None):
+        src = self.norm1(src)
+        if src_mask is None:
+            src_mask = generate_square_subsequent_mask(len(src)).to(src.device)
+        attn_output = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
+        src = src + self.dropout1(attn_output)
+        src = self.norm2(src)
+        src = src + self.feedforward(src)
+
+        return src
+    
+class GPT2EncoderLayerWithLTC(nn.Module):
+    def __init__(self, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1, ltc=False, oscattention=False):
+        super(GPT2EncoderLayer, self).__init__()
+        if (oscattention== False):
+            self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         else:
-            self.feedforward = nn.Sequential(
-                nn.Linear(d_model, dim_feedforward),
-                nn.ReLU(),
-                nn.Dropout(dropout),
-                nn.Linear(dim_feedforward, d_model)
-            )
+            self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
+
+        num_neurons = 7  # For example, a small number like 7
+        self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)
+        wiring1 = AutoNCP(num_neurons, 3)  # Assuming 3
+        self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)
+        self.ltc_to_feedforward1 = nn.Linear(3, d_model)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(dropout)
@@ -80,20 +100,21 @@ class GPT2EncoderLayer(nn.Module):
         src = src + self.dropout1(attn_output)
         src = self.norm2(src)
         
-        if hasattr(self, 'ltc_layer1'):
-            src1 = self.embed_to_ltc1(src)
-            src1, _ = self.ltc_layer1(src1)
-            src2 = self.ltc_to_feedforward1(src1)
-            src = src + src2
-        else:
-            src = src + self.feedforward(src)
+       
+        src1 = self.embed_to_ltc1(src)
+        src1, _ = self.ltc_layer1(src1)
+        src2 = self.ltc_to_feedforward1(src1)
+        src = src + src2
 
         return src
 
 class GPT2Encoder(nn.Module):
-    def __init__(self, num_layers=12, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1, ltc=False):
+    def __init__(self, num_layers=3, d_model=768, nhead=3, dim_feedforward=3072, dropout=0.1, ltc=False):
         super(GPT2Encoder, self).__init__()
-        self.layers = nn.ModuleList([GPT2EncoderLayer(d_model, nhead, dim_feedforward, dropout, ltc=ltc) for _ in range(num_layers)])
+        if (ltc == False):
+            self.layers = nn.ModuleList([GPT2EncoderLayer(d_model, nhead, dim_feedforward, dropout, ltc=ltc) for _ in range(num_layers)])
+        else:
+            self.layers = nn.ModuleList([GPT2EncoderLayer(d_model, nhead, dim_feedforward, dropout, ltc=ltc) for _ in range(num_layers-1)])
         self.num_layers = num_layers
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
