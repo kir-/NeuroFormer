@@ -86,9 +86,9 @@ class GPT2EncoderLayer(nn.Module):
         return src
 
 class GPT2Encoder(nn.Module):
-    def __init__(self, num_layers=12, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1):
+    def __init__(self, num_layers=12, d_model=768, nhead=12, dim_feedforward=3072, dropout=0.1, ltc=False):
         super(GPT2Encoder, self).__init__()
-        self.layers = nn.ModuleList([GPT2EncoderLayer(d_model, nhead, dim_feedforward, dropout) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([GPT2EncoderLayer(d_model, nhead, dim_feedforward, dropout, ltc=ltc) for _ in range(num_layers)])
         self.num_layers = num_layers
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
@@ -107,7 +107,7 @@ class GPT2Model(nn.Module):
         self.positional_embedding = nn.Embedding(max_seq_length, d_model)
 
         # The main GPT-2 body (stacked layers of transformers)
-        self.encoder = GPT2Encoder(num_layers, d_model, nhead, dim_feedforward, dropout)
+        self.encoder = GPT2Encoder(num_layers, d_model, nhead, dim_feedforward, dropout, ltc=True)
 
         # To produce logits over the vocabulary
         self.classifier = nn.Linear(d_model, vocab_size)
