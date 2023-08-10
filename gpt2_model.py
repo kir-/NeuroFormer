@@ -57,7 +57,7 @@ class GPT2EncoderLayer(nn.Module):
         if ltc:
             self.embed_to_ltc = nn.Linear(d_model, num_neurons-3)  # reduce by 2 to fit the AutoNCP constraint
             wiring = AutoNCP(num_neurons, num_neurons-3)  
-            self.ltc_layer = LTC(num_neurons-2, wiring, batch_first=True)  # Modify the input size here too
+            self.ltc_layer = LTC(num_neurons-3, wiring, batch_first=True)  # Modify the input size here too
             self.ltc_to_feedforward = nn.Linear(num_neurons-3, dim_feedforward)
         else:
             self.layer1 = nn.Linear(d_model, dim_feedforward)
