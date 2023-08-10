@@ -121,7 +121,7 @@ class GPT2Model(nn.Module):
         self.positional_embedding = nn.Embedding(max_seq_length, d_model)
 
         # The main GPT-2 body (stacked layers of transformers)
-        self.encoder = GPT2Encoder(num_layers, d_model, nhead, dim_feedforward, dropout, ltc=False)
+        self.encoder = GPT2Encoder(num_layers, d_model, nhead, dim_feedforward, dropout, ltc=True)
 
         # To produce logits over the vocabulary
         self.classifier = nn.Linear(d_model, vocab_size)
