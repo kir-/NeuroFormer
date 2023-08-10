@@ -83,8 +83,8 @@ class GPT2EncoderLayer(nn.Module):
             # print("ltc:",len(src))  # Should print [batch_size, num_neurons-3]
             src = self.ltc_to_feedforward(src)
             src = self.feedforward_to_embedding(src)
-
-            src2 = self.linear2(self.dropout(F.relu(src)))
+            src = torch.transpose(self.dropout(F.relu(src)), 0, 1)
+            src2 = self.linear2(src)
             src = src + self.dropout2(src2)
         else:
             src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
