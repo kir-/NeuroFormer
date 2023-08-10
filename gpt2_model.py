@@ -55,11 +55,17 @@ class GPT2EncoderLayer(nn.Module):
         num_neurons = 16  # For example, a small number like 16
 
         if ltc:
-            self.embed_to_ltc = nn.Linear(d_model, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
-            wiring = AutoNCP(num_neurons, 4)  
-            self.ltc_layer = LTC(num_neurons, wiring, batch_first=True)  # Modify the input size here too
-            self.ltc_to_feedforward = nn.Linear(4, dim_feedforward)
-            self.feedforward_to_embedding = nn.Linear(dim_feedforward, d_model)
+            self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
+            wiring1 = AutoNCP(num_neurons, 4)  
+            self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)  # Modify the input size here too
+            self.ltc_to_feedforward1 = nn.Linear(4, dim_feedforward)
+            self.feedforward_to_embedding1 = nn.Linear(dim_feedforward, d_model)
+
+            self.embed_to_ltc2 = nn.Linear(dim_feedforward, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
+            wiring2 = AutoNCP(num_neurons, 4)  
+            self.ltc_layer2 = LTC(num_neurons, wiring1, batch_first=True)  # Modify the input size here too
+            self.ltc_to_feedforward2 = nn.Linear(4, d_model)
+            self.feedforward_to_embedding2 = nn.Linear(d_model, dim_feedforward)
         else:
             self.layer1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -77,15 +83,16 @@ class GPT2EncoderLayer(nn.Module):
         src = src + self.dropout1(src2)
         src = self.norm2(src)
         if hasattr(self, 'ltc_layer'):
-            src = self.embed_to_ltc(src)
-            # print("ltc embed:",src.shape)  # Should print [batch_size, num_neurons-3]
-            src, _ = self.ltc_layer(src)
-            # print("ltc:",len(src))  # Should print [batch_size, num_neurons-3]
-            src = self.ltc_to_feedforward(src)
-            src = self.feedforward_to_embedding(src)
-            src = (self.dropout(F.relu(src)), 0, 1)
-            print("shape:",src)
-            src2 = self.linear2(src)
+            src1 = self.embed_to_ltc1(src)
+            src1, _ = self.ltc_layer1(src1)
+            src1 = self.ltc_to_feedforward1(src1)
+            src1 = self.feedforward_to_embedding1(src1)
+            src1 = self.dropout(F.relu(src1))
+            src1 = self.embed_to_ltc1(src1)
+            src2, _ = self.ltc_layer2(src1)
+            src2 = self.ltc_to_feedforward1(src2)
+            src2 = self.feedforward_to_embedding1(src2)
+            src2 = self.dropout(F.relu(src2))
             src = src + self.dropout2(src2)
         else:
             src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
