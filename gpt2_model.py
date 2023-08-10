@@ -60,7 +60,7 @@ class GPT2EncoderLayer(nn.Module):
             self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)
             self.ltc_to_feedforward1 = nn.Linear(3, dim_feedforward)
             self.feedforward_to_embedding1 = nn.Linear(dim_feedforward, d_model)
-
+            self.layer1 = nn.Linear(d_model, dim_feedforward)
             self.embed_to_ltc2 = nn.Linear(dim_feedforward, num_neurons)
             wiring2 = AutoNCP(num_neurons, 3)  
             self.ltc_layer2 = LTC(num_neurons, wiring2, batch_first=True)
