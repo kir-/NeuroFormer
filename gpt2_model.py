@@ -52,20 +52,15 @@ class GPT2EncoderLayer(nn.Module):
         else:
             self.self_attn = OscillatoryAttention(d_model, nhead, dropout)
 
-        num_neurons = 9  # For example, a small number like 16
+        num_neurons = 9  # For example, a small number like 9
 
         if ltc:
             self.embed_to_ltc1 = nn.Linear(d_model, num_neurons)
-            wiring1 = AutoNCP(num_neurons, 3)  
+            wiring1 = AutoNCP(num_neurons, 3)
             self.ltc_layer1 = LTC(num_neurons, wiring1, batch_first=True)
             self.ltc_to_feedforward1 = nn.Linear(3, dim_feedforward)
             self.feedforward_to_embedding1 = nn.Linear(dim_feedforward, d_model)
             self.layer1 = nn.Linear(d_model, dim_feedforward)
-            self.embed_to_ltc2 = nn.Linear(dim_feedforward, num_neurons)
-            wiring2 = AutoNCP(num_neurons, 3)  
-            self.ltc_layer2 = LTC(num_neurons, wiring2, batch_first=True)
-            self.ltc_to_feedforward2 = nn.Linear(3, d_model)
-            self.feedforward_to_embedding2 = nn.Linear(d_model, dim_feedforward)
         else:
             self.layer1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -83,16 +78,12 @@ class GPT2EncoderLayer(nn.Module):
         src = src + self.dropout1(src2)
         src = self.norm2(src)
         if hasattr(self, 'ltc_layer1'):
-            src1 = self.dropout(F.relu(self.layer1(src)))
-            # src1, _ = self.ltc_layer1(src1)
-            # src1 = self.ltc_to_feedforward1(src1)
-            # src1 = self.feedforward_to_embedding1(src1)
-            # src1 = self.dropout(F.relu(src1))
-            # src1 = self.embed_to_ltc1(src1)
-            src2, _ = self.ltc_layer2(src1)
-            src2 = self.ltc_to_feedforward1(src2)
-            src2 = self.feedforward_to_embedding1(src2)
-            src2 = self.dropout(F.relu(src2))
+            src1 = self.embed_to_ltc1(src)
+            src1, _ = self.ltc_layer1(src1)
+            src1 = self.ltc_to_feedforward1(src1)
+            src1 = F.relu(src1)
+            src2 = self.feedforward_to_embedding1(src1)
+            src2 = self.linear2(self.dropout(F.relu(src2)))
             src = src + self.dropout2(src2)
         else:
             src2 = self.linear2(self.dropout(F.relu(self.layer1(src))))
