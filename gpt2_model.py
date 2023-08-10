@@ -63,7 +63,7 @@ class GPT2EncoderLayer(nn.Module):
 
             self.embed_to_ltc2 = nn.Linear(dim_feedforward, num_neurons)  # reduce by 2 to fit the AutoNCP constraint
             wiring2 = AutoNCP(num_neurons, 4)  
-            self.ltc_layer2 = LTC(num_neurons, wiring1, batch_first=True)  # Modify the input size here too
+            self.ltc_layer2 = LTC(num_neurons, wiring2, batch_first=True)  # Modify the input size here too
             self.ltc_to_feedforward2 = nn.Linear(4, d_model)
             self.feedforward_to_embedding2 = nn.Linear(d_model, dim_feedforward)
         else:
@@ -82,7 +82,7 @@ class GPT2EncoderLayer(nn.Module):
         src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
         src = self.norm2(src)
-        if hasattr(self, 'ltc_layer'):
+        if hasattr(self, 'ltc_layer1'):
             src1 = self.embed_to_ltc1(src)
             src1, _ = self.ltc_layer1(src1)
             src1 = self.ltc_to_feedforward1(src1)
